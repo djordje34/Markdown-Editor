@@ -18,7 +18,6 @@ async function createMainWindow() {
 
   mainWindow.loadFile(main);
 
-  // Context menu setup
   const contextMenu = (await import('electron-context-menu')).default;
   contextMenu({
     window: mainWindow,
@@ -65,7 +64,6 @@ async function createMainWindow() {
     ]
   });
 
-  // Menu template setup
   const menuTemplate = [
     {
       label: 'File',
@@ -146,7 +144,7 @@ ipcMain.on('open-file-from-tree', (event, filePath) => {
   currentFilePath = filePath;
   fs.readFile(filePath, 'utf-8').then(data => {
     mainWindow.webContents.send('open-file', data, path.dirname(filePath), filePath);
-    mainWindow.webContents.send('update-file-tree', path.dirname(filePath)); // Optional: Update file tree if needed
+    mainWindow.webContents.send('update-file-tree', path.dirname(filePath));
   }).catch(err => {
     console.log('Error reading file:', err);
   });
