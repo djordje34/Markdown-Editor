@@ -152,30 +152,28 @@
       structure.forEach(item => {
         const div = document.createElement('div');
         div.textContent = item.name;
-    
-        // Determine icon based on file type
         const icon = document.createElement('i');
-        icon.classList.add('fas'); // Font Awesome icon class
+        icon.classList.add('fas');
     
         if (item.type === 'directory') {
-          icon.classList.add('fa-folder'); // Folder icon
+          icon.classList.add('fa-folder');
         } else if (item.type === 'file') {
           const fileExtension = item.name.split('.').pop().toLowerCase();
     
           if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(fileExtension)) {
-            icon.classList.add('fa-file-image'); // Image file icon
+            icon.classList.add('fa-file-image'); 
           } else if (['pdf'].includes(fileExtension)) {
-            icon.classList.add('fa-file-pdf'); // PDF file icon
+            icon.classList.add('fa-file-pdf');
           } else if (['doc', 'docx'].includes(fileExtension)) {
-            icon.classList.add('fa-file-word'); // Word file icon
+            icon.classList.add('fa-file-word');
           } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            icon.classList.add('fa-file-excel'); // Excel file icon
+            icon.classList.add('fa-file-excel');
           } else {
-            icon.classList.add('fa-file'); // Default file icon
+            icon.classList.add('fa-file'); 
           }
         }
     
-        div.insertBefore(icon, div.firstChild); // Insert icon before text
+        div.insertBefore(icon, div.firstChild); 
         div.classList.add(item.type);
     
         if (item.type === 'directory') {
