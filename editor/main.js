@@ -4,9 +4,11 @@ const fs = require('fs').promises;
 const { readdir, stat } = require('fs').promises;
 
 const main = 'static/index.html';
+let mainWindow;
+let currentFilePath
 
 async function createMainWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
     webPreferences: {
@@ -15,8 +17,9 @@ async function createMainWindow() {
   });
 
   mainWindow.loadFile(main);
+
+  // Context menu setup
   const contextMenu = (await import('electron-context-menu')).default;
-  
   contextMenu({
     window: mainWindow,
     prepend: (defaultActions, params, browserWindow) => [
@@ -38,6 +41,7 @@ async function createMainWindow() {
                 } else {
                   fs.readFile(filePath, 'utf-8').then(data => {
                     mainWindow.webContents.send('open-file', data, path.dirname(filePath), filePath);
+                    mainWindow.webContents.send('update-file-tree', path.dirname(filePath));
                   }).catch(err => {
                     console.log('Error reading file:', err);
                   });
@@ -45,6 +49,7 @@ async function createMainWindow() {
               }).catch(err => {
                 console.log('Error getting file stats:', err);
               });
+              currentFilePath = filePath;
             }
           }).catch(err => {
             console.log('Error opening dialog:', err);
@@ -60,7 +65,7 @@ async function createMainWindow() {
     ]
   });
 
-  // Define menu template
+  // Menu template setup
   const menuTemplate = [
     {
       label: 'File',
@@ -82,7 +87,7 @@ async function createMainWindow() {
                     console.error('Selected path is a directory, not a file.');
                   } else {
                     fs.readFile(filePath, 'utf-8').then(data => {
-                      mainWindow.webContents.send('open-file', data, path.dirname(filePath));
+                      mainWindow.webContents.send('open-file', data, path.dirname(filePath), filePath);
                       mainWindow.webContents.send('update-file-tree', path.dirname(filePath));
                     }).catch(err => {
                       console.log('Error reading file:', err);
@@ -99,19 +104,26 @@ async function createMainWindow() {
         },
         {
           label: 'Save',
+          accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow.webContents.send('save-file');
           }
         },
+        {
+          label: 'Save As',
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: () => {
+            mainWindow.webContents.send('save-content-as');
+          }
+        },
+        { type: 'separator' },
         { role: 'quit' }
       ]
     }
   ];
 
-
   const menu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(menu);
-
 }
 
 app.whenReady().then(() => {
@@ -130,26 +142,37 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.on('save-content', (event, content) => {
-  dialog.showSaveDialog({
-    title: 'Save Markdown',
-    defaultPath: path.join(__dirname, 'untitled.md'),
-    filters: [
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
-  }).then(file => {
-    if (!file.canceled) {
-      fs.writeFile(file.filePath.toString(), content, (err) => {
-        if (err) throw err;
-        console.log('File successfully saved.');
-      });
-    }
+ipcMain.on('open-file-from-tree', (event, filePath) => {
+  currentFilePath = filePath;
+  fs.readFile(filePath, 'utf-8').then(data => {
+    mainWindow.webContents.send('open-file', data, path.dirname(filePath), filePath);
+    mainWindow.webContents.send('update-file-tree', path.dirname(filePath)); // Optional: Update file tree if needed
   }).catch(err => {
-    console.log(err);
+    console.log('Error reading file:', err);
   });
 });
 
+ipcMain.on('save-content', (event, content) => {
+  console.log(currentFilePath);
+  if (currentFilePath) {
+    saveFile(currentFilePath, content);
+  } else {
+    dialog.showSaveDialog({
+      title: 'Save Markdown',
+      defaultPath: path.join(__dirname, 'untitled.md'),
+      filters: [
+        { name: 'Markdown Files', extensions: ['md'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    }).then(file => {
+      if (!file.canceled) {
+        saveFile(file.filePath.toString(), content);
+      }
+    }).catch(err => {
+      console.log('Error saving file:', err);
+    });
+  }
+});
 
 ipcMain.on('get-directory-structure', async (event, directory) => {
   try {
@@ -165,13 +188,9 @@ async function getDirectoryStructure(directory) {
     const items = await readdir(directory);
     const structure = [];
 
-    console.log('Processing directory:', directory);
-
     for (const item of items) {
       const itemPath = path.join(directory, item);
       const itemStat = await stat(itemPath);
-
-      console.log(itemPath+" "+item)
 
       if (itemStat.isDirectory()) {
         const contents = await getDirectoryStructure(itemPath);
@@ -193,5 +212,15 @@ async function getDirectoryStructure(directory) {
   } catch (error) {
     console.error('Error in getDirectoryStructure:', error);
     throw error;
+  }
 }
+
+function saveFile(filePath, content) {
+  fs.writeFile(filePath, content, 'utf-8', (err) => {
+    if (err) {
+      console.log('Error saving file:', err);
+      return;
+    }
+    console.log('File successfully saved:', filePath);
+  });
 }
