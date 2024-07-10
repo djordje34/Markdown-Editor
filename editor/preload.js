@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+window.ipcRenderer = require('electron').ipcRenderer
+
 contextBridge.exposeInMainWorld('api', {
   send: (channel, data) => {
     const validChannels = ['save-content', 'get-directory-structure', 'open-file-from-tree'];
