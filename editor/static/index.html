@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Markdown Editor</title>
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #121212;
@@ -21,13 +22,24 @@
     .editor {
       resize: none;
     }
+    .col-md-2{
+      padding:0px;
+    }
+    .col-md-5{
+      padding:0px;
+    }
 
     .editor:focus {
       border: 1px solid #333;
+      border-radius: 0%;
+      color: #e0e0e0;
       background-color: #1e1e1e;
-      color: #e0e0e0; 
+      outline: none !important;
+      box-shadow: 0 0 5px #2f2f2f;
     }
 
+
+    
     .file-tree {
       height: 90vh;
       overflow-y: auto;
@@ -43,6 +55,10 @@
     .file:hover{
       background-color:#292929;
       color:#e0e0e0;
+      cursor:pointer;
+    }
+    i{
+      margin-right: 5px;
     }
 
     .directory:hover{
@@ -59,10 +75,10 @@
 <body>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div id="fileTree" class="file-tree"></div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-5">
         <textarea id="editor" class="form-control editor" placeholder="Type your Markdown here..."></textarea>
       </div>
       <div class="col-md-5">
@@ -71,45 +87,96 @@
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.0.0/marked.min.js"></script>
-  <script>
-    const editor = document.getElementById('editor');
-    const preview = document.getElementById('preview');
-    const fileTree = document.getElementById('fileTree');
-    let currentFilePath;
+    <script>
+
+      const editor = document.getElementById('editor');
+      const preview = document.getElementById('preview');
+      const fileTree = document.getElementById('fileTree');
+      let currentFilePath;
+      let currentDirectory;
+
 
     editor.addEventListener('input', () => {
       const markdownText = editor.value;
       preview.innerHTML = marked(markdownText);
     });
-
+    
     window.api.receive('save-file', () => {
+      const content = editor.value;
+      window.api.send('save-content', content, currentFilePath);
+    });
+    
+    window.api.receive('save-content-as', () => {
       const content = editor.value;
       window.api.send('save-content', content);
     });
+    
+    window.api.receive('open-file', (content, directory, filePath) => {
 
-    window.api.receive('open-file', (content, directory, filePath, originalFilePath) => {
+      const renderer = new marked.Renderer();
+      renderer.image = function(href, title, text) {
+        let resolvedPath = directory+"\\"+href;
+        console.log(resolvedPath)
+
+
+        let imgTag = '<img src="file://' + resolvedPath + '" alt="' + text + '"';
+        if (title) {
+          imgTag += ' title="' + title + '"';
+        }
+        imgTag += '>';
+        return imgTag;
+      };
+
+      marked.setOptions({
+        renderer: renderer
+      });
+
       editor.value = content;
       preview.innerHTML = marked(content);
       currentFilePath = filePath;
-      console.log(currentFilePath+ " "+ filePath)
-
-      loadFileTree(directory);
+      currentDirectory = directory;
+      
+      console.log(currentDirectory)
+      loadFileTree(currentDirectory, currentFilePath);
     });
-
-    function loadFileTree(directory) {
+    
+    function loadFileTree(directory, currentFilePath) {
       fileTree.innerHTML = '';
       window.api.send('get-directory-structure', directory);
     }
-
+    
     window.api.receive('directory-structure', (structure) => {
       renderFileTree(structure, fileTree);
     });
-
+    
     function renderFileTree(structure, container) {
-      console.log(currentFilePath)
       structure.forEach(item => {
         const div = document.createElement('div');
         div.textContent = item.name;
+    
+        // Determine icon based on file type
+        const icon = document.createElement('i');
+        icon.classList.add('fas'); // Font Awesome icon class
+    
+        if (item.type === 'directory') {
+          icon.classList.add('fa-folder'); // Folder icon
+        } else if (item.type === 'file') {
+          const fileExtension = item.name.split('.').pop().toLowerCase();
+    
+          if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(fileExtension)) {
+            icon.classList.add('fa-file-image'); // Image file icon
+          } else if (['pdf'].includes(fileExtension)) {
+            icon.classList.add('fa-file-pdf'); // PDF file icon
+          } else if (['doc', 'docx'].includes(fileExtension)) {
+            icon.classList.add('fa-file-word'); // Word file icon
+          } else if (['xls', 'xlsx'].includes(fileExtension)) {
+            icon.classList.add('fa-file-excel'); // Excel file icon
+          } else {
+            icon.classList.add('fa-file'); // Default file icon
+          }
+        }
+    
+        div.insertBefore(icon, div.firstChild); // Insert icon before text
         div.classList.add(item.type);
     
         if (item.type === 'directory') {
@@ -121,7 +188,6 @@
           div.addEventListener('click', () => {
             openFileFromTree(item.path);
           });
-
           if (item.path === currentFilePath) {
             div.classList.add('current-file');
           }
@@ -130,10 +196,9 @@
         container.appendChild(div);
       });
     }
-
+    
     function openFileFromTree(filePath) {
       window.api.send('open-file-from-tree', filePath);
-      console.log(filePath)
     }
   </script>
 </body>
