@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Editor</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    .editor, .preview {
+      min-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid #444;
+      background-color: #1e1e1e;
+      padding: 20px;
+      color: #e0e0e0;
+    }
+    .editor {
+      resize: none;
+    }
+
+    .editor:focus {
+      border: 1px solid #333;
+      background-color: #1e1e1e;
+      color: #e0e0e0; 
+    }
+
+    .file-tree {
+      height: 90vh;
+      overflow-y: auto;
+      border: 1px solid #333;
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+    }
+    
+    .file-tree .file, .file-tree .directory {
+      cursor: pointer;
+    }
+
+    .file:hover{
+      background-color:#292929;
+      color:#e0e0e0;
+    }
+
+    .directory:hover{
+      background-color:#292929;
+      color:#e0e0e0;
+    }
+
+    .file-tree .current-file {
+      background-color: #292929;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-3">
+        <div id="fileTree" class="file-tree"></div>
+      </div>
+      <div class="col-md-4">
+        <textarea id="editor" class="form-control editor" placeholder="Type your Markdown here..."></textarea>
+      </div>
+      <div class="col-md-5">
+        <div id="preview" class="preview"></div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.0.0/marked.min.js"></script>
+  <script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+    const fileTree = document.getElementById('fileTree');
+    let currentFilePath;
+
+    editor.addEventListener('input', () => {
+      const markdownText = editor.value;
+      preview.innerHTML = marked(markdownText);
+    });
+
+    window.api.receive('save-file', () => {
+      const content = editor.value;
+      window.api.send('save-content', content);
+    });
+
+    window.api.receive('open-file', (content, directory, filePath, originalFilePath) => {
+      editor.value = content;
+      preview.innerHTML = marked(content);
+      currentFilePath = filePath;
+      console.log(currentFilePath+ " "+ filePath)
+
+      loadFileTree(directory);
+    });
+
+    function loadFileTree(directory) {
+      fileTree.innerHTML = '';
+      window.api.send('get-directory-structure', directory);
+    }
+
+    window.api.receive('directory-structure', (structure) => {
+      renderFileTree(structure, fileTree);
+    });
+
+    function renderFileTree(structure, container) {
+      console.log(currentFilePath)
+      structure.forEach(item => {
+        const div = document.createElement('div');
+        div.textContent = item.name;
+        div.classList.add(item.type);
+    
+        if (item.type === 'directory') {
+          const innerContainer = document.createElement('div');
+          innerContainer.classList.add('directory-contents');
+          div.appendChild(innerContainer);
+          renderFileTree(item.contents, innerContainer);
+        } else if (item.type === 'file') {
+          div.addEventListener('click', () => {
+            openFileFromTree(item.path);
+          });
+
+          if (item.path === currentFilePath) {
+            div.classList.add('current-file');
+          }
+        }
+    
+        container.appendChild(div);
+      });
+    }
+
+    function openFileFromTree(filePath) {
+      window.api.send('open-file-from-tree', filePath);
+      console.log(filePath)
+    }
+  </script>
+</body>
+</html>
