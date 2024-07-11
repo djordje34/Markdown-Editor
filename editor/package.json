@@ -2,7 +2,7 @@
   "name": "markdown_editor",
   "version": "1.0.0",
   "description": "Markdown Editor",
-  "main": "main.js",
+  "main": "main.cjs",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
