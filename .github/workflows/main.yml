@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: 16
 
+      - name: Verify index.js existence
+        run: ls editor/index.js
+
       - name: Rename index.js to index.cjs
-        run: mv index.js index.cjs
+        run: mv editor/index.js editor/index.cjs
 
       - name: Electron-builder compiler action
         uses: x6pnda/action-electron-compiler@v1.0.1
