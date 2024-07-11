@@ -10,14 +10,16 @@
     body {
       background-color: #1e1e1e;
       color: #e0e0e0;
+      color-scheme: dark;
     }
     .editor, .preview {
-      min-height: 90vh;
-      overflow-y: auto;
+      min-height: 100vh;
       border: 1px solid #444;
       background-color: #1e1e1e;
       padding: 20px;
       color: #e0e0e0;
+      max-height:100vh;
+      overflow-y:scroll;
     }
     .editor {
       resize: none;
@@ -37,15 +39,16 @@
       outline: none !important;
       box-shadow: 0 0 5px #2f2f2f;
     }
-
-
     
     .file-tree {
-      height: 90vh;
+      height: 100vh;
       overflow-y: auto;
+      width:fit-content;
+      min-width:100%;
       border: 1px solid #333;
       background-color: #1e1e1e;
       color: #e0e0e0;
+      font-size: 12px;
     }
     
     .file-tree .file, .file-tree .directory {
@@ -61,20 +64,37 @@
       margin-right: 5px;
     }
 
-    .directory:hover{
-      background-color:#292929;
-      color:#e0e0e0;
-    }
-
     .file-tree .current-file {
       background-color: #292929;
       color: #e0e0e0;
     }
+
+    .directory-name{
+      font-weight: bolder;
+    }
+    .fulldir{
+      width:100%;
+      border-bottom: 1px solid #292929;
+      border-top: 1px solid #292929;
+      margin:0;
+      padding:0;
+      background-color: #202020;
+    }
+    .fullfile{
+      width:100%;
+      margin:0;
+      padding:0;
+    }
+    .fulldir:hover{
+      background-color:#292929;
+      color:#e0e0e0;
+    }
+
   </style>
 </head>
 <body>
   <div class="container-fluid">
-    <div class="row">
+    <div class="row d-flex flex-row">
       <div class="col-md-2">
         <div id="fileTree" class="file-tree"></div>
       </div>
@@ -151,12 +171,15 @@
     function renderFileTree(structure, container) {
       structure.forEach(item => {
         const div = document.createElement('div');
-        div.textContent = item.name;
+        const textDiv = document.createElement('span');
+
+        textDiv.textContent = item.name;
         const icon = document.createElement('i');
         icon.classList.add('fas');
     
         if (item.type === 'directory') {
           icon.classList.add('fa-folder');
+          textDiv.classList.add('directory-name');
         } else if (item.type === 'file') {
           const fileExtension = item.name.split('.').pop().toLowerCase();
     
@@ -172,8 +195,16 @@
             icon.classList.add('fa-file'); 
           }
         }
-    
-        div.insertBefore(icon, div.firstChild); 
+        const nd = document.createElement('p');
+        nd.insertBefore(icon, div.firstChild); 
+        nd.appendChild(textDiv);
+        if (item.type === 'directory') {
+        nd.classList.add('fulldir')
+        }
+        else{
+          nd.classList.add('fullfile')
+        }
+        div.appendChild(nd);
         div.classList.add(item.type);
     
         if (item.type === 'directory') {
