@@ -19,8 +19,9 @@ jobs:
               with:
                   node-version: 16
 
-            - name: Compile Electron App
-              uses: x6Pnda/action-electron-compiler@v1
+                          
+            - name: Electron-builder compiler action
+              uses: x6pnda/action-electron-compiler@v1.0.1
               with:
                   # GitHub token, automatically provided to the action
                   # (Optional)
