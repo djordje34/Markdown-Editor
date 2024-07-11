@@ -13,8 +13,11 @@ async function createMainWindow() {
     height: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
-    }
+    },
+    show:false
   });
+  mainWindow.maximize();
+  mainWindow.show();
 
   mainWindow.loadFile(main);
 
