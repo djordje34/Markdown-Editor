@@ -1,2 +1,2 @@
-# MDED
+# Markdown Editor
 Electron Markdown Editor
