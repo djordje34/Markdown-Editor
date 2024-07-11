@@ -9,6 +9,7 @@ let currentFilePath
 
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
+    icon:'./static/logo.png',
     width: 1280,
     height: 720,
     webPreferences: {
